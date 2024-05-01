@@ -87,8 +87,7 @@ public class GetLocation : MonoBehaviour
     
     private void Update()
     {
-        debugText2.text = "";
-        GetJsonData(0);
+        //GetJsonData(0);
         if(Input.compass.enabled) {
             StartCoroutine(StartLocationService());
             //Quaternion rotation = Quaternion.Euler(0, -Input.compass.trueHeading, 0);
@@ -100,12 +99,14 @@ public class GetLocation : MonoBehaviour
         // 카메라의 위치와 방향을 받아옴
         Vector3 cameraPosition = Camera.main.transform.position;
         Vector3 cameraForward = Camera.main.transform.forward;
-
+        
+        debugText2.text = cameraForward.ToString();
         // 카메라에서 타겟 오브젝트까지의 방향 벡터
         bool all_watch = true;
         for (int it = 0; it < 2; it++) {
             if (!placedObject[it]) continue;
             Vector3 directionToTarget = deltavector(placedObject[it].transform.position, cameraPosition);
+            placedObject[it].transform.forward = directionToTarget.normalized;
 
             // 카메라의 방향 벡터와 타겟 방향 벡터의 각도 계산
             float angle = Vector3.Angle(cameraForward, directionToTarget);
@@ -114,7 +115,6 @@ public class GetLocation : MonoBehaviour
             //Debug.Log(angle);
             //Debug.Log(Vector3.Dot(cameraForward, directionToTarget.normalized));
             // 시선 최대 각도 이내에 있으면서 타겟 오브젝트를 바라보고 있다면
-            debugText2.text += cameraForward.ToString();
             debugText2.text += directionToTarget.normalized.ToString();
             //debugText2.text += cameraPosition.ToString();
             if (angle <= 30.0f && Vector3.Dot(cameraForward, directionToTarget.normalized) > 0.5f)
@@ -135,7 +135,7 @@ public class GetLocation : MonoBehaviour
             }
         }
         if (all_watch) {
-            //uiToShow.SetActive(false);
+            uiToShow.SetActive(false);
         }
     }
     private void GetJsonData(int it) {
