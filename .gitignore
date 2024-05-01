@@ -1,0 +1,15 @@
+/.collabignore
+/.vscode
+/ar2021.apk
+/AR2021.sln
+/ar2021.zip
+/ar2021_BackUpThisFolder_ButDontShipItWithYourGame
+/Assembly-CSharp.csproj
+/InitCodeMarker
+/Library
+/Logs
+/obj
+/Packages
+/ProjectSettings
+/Temp
+/UserSettings

@@ -1,0 +1,15 @@
+{
+    "readingRoom": {
+      "totalSeats": 120,
+      "availableSeats": 45
+    },
+    "printShop": {
+      "isOpen": true,
+      "hours": "09:00 - 18:00"
+    },
+    "emptyClassrooms": [
+      "K203",
+      "K201",
+      "K302"
+    ]
+}
