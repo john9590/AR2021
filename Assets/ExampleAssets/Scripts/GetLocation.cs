@@ -54,6 +54,7 @@ public class GetLocation : MonoBehaviour
     private Vector2[] rhks = new Vector2[2];
     private FacilityInfo jsonData;
     private bool isSet = false;
+    private bool iscompass = true;
     private string[] httpsjson = { "https://mocki.io/v1/2a3dc021-69b6-4802-8b3b-a76f340fe71f",
                                     "https://mocki.io/v1/2a3dc021-69b6-4802-8b3b-a76f340fe71f" };
     private void Start()
@@ -63,6 +64,7 @@ public class GetLocation : MonoBehaviour
         rhks[1] = new Vector2(37.6228f, 127.1495f);
         DontDestroyOnLoad(gameObject);
         Input.compass.enabled = true;
+        StartCoroutine(ObjectRotation());
         //StartCoroutine(StartLocationService());
         /*string _path = Application.persistentDataPath + "/Scripts";
         if (File.Exists(_path + "/SogangLink.json")) {
@@ -88,12 +90,12 @@ public class GetLocation : MonoBehaviour
     private void Update()
     {
         //GetJsonData(0);
-        if(Input.compass.enabled) {
+        if(iscompass && Input.compass.enabled) {
             StartCoroutine(StartLocationService());
             //Quaternion rotation = Quaternion.Euler(0, -Input.compass.trueHeading, 0);
             //transform.rotation = rotation;
             //debugText2.text = rotation.w.ToString() + rotation.y.ToString();
-            Input.compass.enabled = false;
+            iscompass = false;
         }
         if (!isSet) return;
         // 카메라의 위치와 방향을 받아옴
@@ -101,12 +103,13 @@ public class GetLocation : MonoBehaviour
         Vector3 cameraForward = Camera.main.transform.forward;
         
         debugText2.text = cameraForward.ToString();
+        debugText2.text += Input.compass.trueHeading.ToString();
         // 카메라에서 타겟 오브젝트까지의 방향 벡터
         bool all_watch = true;
         for (int it = 0; it < 2; it++) {
             if (!placedObject[it]) continue;
             Vector3 directionToTarget = deltavector(placedObject[it].transform.position, cameraPosition);
-            placedObject[it].transform.forward = directionToTarget.normalized;
+            //placedObject[it].transform.forward = Quaternion.Euler(0,90,0) * directionToTarget.normalized;
 
             // 카메라의 방향 벡터와 타겟 방향 벡터의 각도 계산
             float angle = Vector3.Angle(cameraForward, directionToTarget);
@@ -210,6 +213,9 @@ public class GetLocation : MonoBehaviour
             message = "Unable to determine device location";
             yield break;
         }
+        if (Input.compass.headingAccuracy < 0) {
+            yield break;
+        }
         // Set locational infomations
         debugText.text = "";
         for (int it=0;it<2;it++) {
@@ -224,33 +230,20 @@ public class GetLocation : MonoBehaviour
             //placedObject[it].transform.localScale = new Vector3(ucspos.magnitude,ucspos.magnitude,ucspos.magnitude);
         }
         //debugText.text += North.w.ToString() + "\n" + North.y.ToString() + "\n";
-        debugText.text += Input.compass.trueHeading;
+        debugText.text += Input.compass.trueHeading.ToString();
         gps_count++;
         isSet = true;
     }
 
-    private IEnumerator GetFacilityInfo(string url)
+    private IEnumerator ObjectRotation()
     {
-        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
-        {
-            // 요청을 보냅니다.
-            yield return webRequest.SendWebRequest();
-
-            // 에러가 있는지 확인합니다.
-            if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
-            {
-                Debug.LogError(webRequest.error);
-            }
-            else
-            {
-                // 받아온 JSON 데이터를 FacilityInfo 오브젝트로 변환합니다.
-                FacilityInfo facilityInfo = JsonUtility.FromJson<FacilityInfo>(webRequest.downloadHandler.text);
-
-                // 데이터 사용 예시
-                Debug.Log("Total Seats: " + facilityInfo.readingRoom);
-                // 추가적인 데이터 처리...
-            }
+        Vector3 cameraPosition = Camera.main.transform.position;
+        for (int it = 0; it < 2; it++) {
+            if (!placedObject[it]) continue;
+            Vector3 directionToTarget = deltavector(placedObject[it].transform.position, cameraPosition);
+            placedObject[it].transform.forward = Quaternion.Euler(0,90,0) * directionToTarget.normalized;
         }
+        yield return new WaitForSeconds(60);
     }
 
     private Vector2 _localOrigin = Vector2.zero;
@@ -281,11 +274,12 @@ public class GetLocation : MonoBehaviour
 	{
 		FindMetersPerLat(_LatOrigin);
         int t = 1000000;
-        float th = Input.compass.trueHeading;
+        float th = Input.compass.trueHeading * 0.0174533f;
 		float zPosition  = metersPerLat * (gps.x * t - _LatOrigin * t) / t; //Calc current lat
 		float xPosition  = metersPerLon * (gps.y * t - _LonOrigin * t) / t; //Calc current lat
+        //return new Vector3(xPosition, 0.0f, zPosition);
 		return new Vector3(
-            (float)(xPosition * Math.Cos(th) + zPosition * Math.Sin(th)),
+            (float)(xPosition * Math.Cos(th) - zPosition * Math.Sin(th)),
             0.0f, 
             (float)(xPosition * Math.Sin(th) + zPosition * Math.Cos(th)));
 	}

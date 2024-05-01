@@ -36,7 +36,8 @@ public class CameraFar : MonoBehaviour
 
     void Update()
     {
-        Debug.Log(Input.compass.trueHeading);
-        //transform.eulerAngles = new Vector3(-Input.compass.trueHeading, 0.0f, 0.0f);
+        //Debug.Log(Input.compass.trueHeading);
+        //transform.eulerAngles = new Vector3(0.0f, -Input.compass.trueHeading, 0.0f);
+        //transform.rotation = Quaternion.Euler(0, -Input.compass.trueHeading, 0);
     }
 }
