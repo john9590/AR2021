@@ -55,8 +55,8 @@ public class GetLocation : MonoBehaviour
     private FacilityInfo jsonData;
     private bool isSet = false;
     private bool iscompass = true;
-    private string[] httpsjson = { "https://mocki.io/v1/2a3dc021-69b6-4802-8b3b-a76f340fe71f",
-                                    "https://mocki.io/v1/2a3dc021-69b6-4802-8b3b-a76f340fe71f" };
+    private string[] httpsjson = { "https://mocki.io/v1/0da39200-2a22-4b91-be21-71754da27b3d",
+                                    "https://mocki.io/v1/0da39200-2a22-4b91-be21-71754da27b3d" };
     private void Start()
     {
         Instance = this;
@@ -89,7 +89,7 @@ public class GetLocation : MonoBehaviour
     
     private void Update()
     {
-        //GetJsonData(0);
+        GetJsonData(0);
         if(iscompass && Input.compass.enabled) {
             StartCoroutine(StartLocationService());
             //Quaternion rotation = Quaternion.Euler(0, -Input.compass.trueHeading, 0);
@@ -149,8 +149,14 @@ public class GetLocation : MonoBehaviour
                 string jsonString = request.downloadHandler.text;
                 jsonData = JsonUtility.FromJson<FacilityInfo>(jsonString);
                 uiText.text = "";
-                for (int i=0;i<3;i++) {
-                    uiText.text += jsonData.emptyClassrooms[i];
+                foreach (string empty in jsonData.emptyClassrooms) {
+                    uiText.text += empty + "\n";
+                }
+                foreach (string empty in jsonData.readingRoom) {
+                    uiText.text += empty + "\n";
+                }
+                foreach (string empty in jsonData.printShop) {
+                    uiText.text += empty + "\n";
                 }
                 uiToShow.SetActive(true);
             }
@@ -243,7 +249,7 @@ public class GetLocation : MonoBehaviour
             Vector3 directionToTarget = deltavector(placedObject[it].transform.position, cameraPosition);
             placedObject[it].transform.forward = Quaternion.Euler(0,90,0) * directionToTarget.normalized;
         }
-        yield return new WaitForSeconds(60);
+        yield return new WaitForSeconds(5);
     }
 
     private Vector2 _localOrigin = Vector2.zero;
@@ -279,9 +285,9 @@ public class GetLocation : MonoBehaviour
 		float xPosition  = metersPerLon * (gps.y * t - _LonOrigin * t) / t; //Calc current lat
         //return new Vector3(xPosition, 0.0f, zPosition);
 		return new Vector3(
-            (float)(xPosition * Math.Cos(th) - zPosition * Math.Sin(th)),
+            (float)(-xPosition * Math.Cos(th) + zPosition * Math.Sin(th)),
             0.0f, 
-            (float)(xPosition * Math.Sin(th) + zPosition * Math.Cos(th)));
+            (float)(-xPosition * Math.Sin(th) - zPosition * Math.Cos(th)));
 	}
 	
 	private Vector2 ConvertUCStoGPS(Vector3 position)
