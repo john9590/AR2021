@@ -14,6 +14,7 @@ using JetBrains.Annotations;
 using UnityEngine.Android;
 using Unity.VisualScripting;
 using System;
+using UnityEngine.Experimental.XR.Interaction;
 
 public class FacilityInfo
 {
@@ -43,6 +44,7 @@ public class GetLocation : MonoBehaviour
     public int gps_count = 0;
     public string message;
     public GameObject objectToPlace;
+    public GameObject arrow;
     private GameObject[] placedObject = new GameObject[2];
     public ARRaycastManager raycastManager;
     public float maxWatchTime = 1f; // 최대 시선 유지 시간
@@ -55,16 +57,31 @@ public class GetLocation : MonoBehaviour
     private FacilityInfo jsonData;
     private bool isSet = false;
     private bool iscompass = true;
-    private string[] httpsjson = { "https://mocki.io/v1/0da39200-2a22-4b91-be21-71754da27b3d",
-                                    "https://mocki.io/v1/0da39200-2a22-4b91-be21-71754da27b3d" };
+    private string[] httpsjson = { "http://3.39.11.150:8080/maps/building?building=K",
+                                    "http://3.39.11.150:8080/maps/building?building=J" };
+    private string[] imageurl = { "https://dbscthumb-phinf.pstatic.net/5701_000_34/20210806195737492_1ZXAYA0WY.jpg/aW1mb3RvfDM0NzI0.jpg?type=m935&autoRotate=true&wm=N",
+                                    "https://lh3.googleusercontent.com/p/AF1QipOOhJ2n_DB9etfwv9ThRtqN0bFMLq263bxNVirq=s1360-w1360-h1020" };
+    public RawImage rawImage;
+    public AspectRatioFitter aspectRatioFitter;
+    public AspectRatioFitter aspectRatioFitter1;
+    private Vector2[] KtoJRoute = new Vector2[3];
+    private Vector2 curLocation = new Vector2(0.0f,0.0f);
+    private int cur_route_i = 0;
+    private bool isNav = false;
+    private float fromN = 0.0f;
     private void Start()
     {
         Instance = this;
-        rhks[0] = new Vector2(37.54969f, 126.9411f);
-        rhks[1] = new Vector2(37.6228f, 127.1495f);
+        rhks[0] = new Vector2(37.55004f, 126.9401f);
+        rhks[1] = new Vector2(37.55054f, 126.9437f);
+        KtoJRoute[0] = new Vector2(37.55007f,126.94084f);
+        KtoJRoute[1] = new Vector2(37.55025f,126.941784f);
+        KtoJRoute[2] = new Vector2(37.550814f,126.943411f);
         DontDestroyOnLoad(gameObject);
         Input.compass.enabled = true;
+        //StartCoroutine(GetTexture("https://lh3.googleusercontent.com/p/AF1QipOOhJ2n_DB9etfwv9ThRtqN0bFMLq263bxNVirq=s1360-w1360-h1020"));
         StartCoroutine(ObjectRotation());
+        //GetJsonData(0);
         //StartCoroutine(StartLocationService());
         /*string _path = Application.persistentDataPath + "/Scripts";
         if (File.Exists(_path + "/SogangLink.json")) {
@@ -85,11 +102,13 @@ public class GetLocation : MonoBehaviour
         }*/
         //StartCoroutine(GetFacilityInfo(url));
         //GameObject placed1Object = Instantiate(objectToPlace, new Vector3(0.0f,0.0f,0.0f), Quaternion.identity);
+        
     }
     
     private void Update()
     {
-        GetJsonData(0);
+        //GetJsonData(0);
+        float angle;
         if(iscompass && Input.compass.enabled) {
             StartCoroutine(StartLocationService());
             //Quaternion rotation = Quaternion.Euler(0, -Input.compass.trueHeading, 0);
@@ -112,7 +131,7 @@ public class GetLocation : MonoBehaviour
             //placedObject[it].transform.forward = Quaternion.Euler(0,90,0) * directionToTarget.normalized;
 
             // 카메라의 방향 벡터와 타겟 방향 벡터의 각도 계산
-            float angle = Vector3.Angle(cameraForward, directionToTarget);
+            angle = Vector3.Angle(cameraForward, directionToTarget);
             //Debug.Log(objectToPlace.transform.position);
             //Debug.Log(cameraPosition);
             //Debug.Log(angle);
@@ -140,8 +159,15 @@ public class GetLocation : MonoBehaviour
         if (all_watch) {
             uiToShow.SetActive(false);
         }
+        //angle = (float)Math.Acos(Vector3.Dot(cameraForward,new Vector3(0.0f,0.0f,1.0f)));
+        if (isNav) {
+            arrow.transform.position = cameraPosition + cameraForward * 10.0f;//new Vector3(10.0f * (float)Math.Sin(angle), 0.0f, 10.0f * (float)Math.Cos(angle));
+            curRotation();
+        }
+        //Debug.Log(angle);
     }
     private void GetJsonData(int it) {
+        StartCoroutine(GetTexture(imageurl[it]));
         StartCoroutine(GetJson(httpsjson[it], (request) => 
         {
             if (request.result == UnityWebRequest.Result.Success && request.responseCode == 200)
@@ -239,6 +265,8 @@ public class GetLocation : MonoBehaviour
         debugText.text += Input.compass.trueHeading.ToString();
         gps_count++;
         isSet = true;
+        fromN = Input.compass.trueHeading;
+        setNav(true);
     }
 
     private IEnumerator ObjectRotation()
@@ -247,11 +275,65 @@ public class GetLocation : MonoBehaviour
         for (int it = 0; it < 2; it++) {
             if (!placedObject[it]) continue;
             Vector3 directionToTarget = deltavector(placedObject[it].transform.position, cameraPosition);
-            placedObject[it].transform.forward = Quaternion.Euler(0,90,0) * directionToTarget.normalized;
+            placedObject[it].transform.forward = directionToTarget.normalized;
         }
         yield return new WaitForSeconds(5);
     }
 
+    IEnumerator GetTexture(string url)
+    {
+        UnityWebRequest www = UnityWebRequestTexture.GetTexture(url);
+        yield return www.SendWebRequest();
+        if (www.result != UnityWebRequest.Result.Success)
+        {
+            Debug.Log(www.error);
+        }
+        else
+        {
+            Texture myTexture = ((DownloadHandlerTexture)www.downloadHandler).texture;
+            rawImage.texture = myTexture;
+            AdjustImageSize(myTexture);
+        }
+    }
+    
+    void AdjustImageSize(Texture texture)
+    {
+        // 이미지 비율 고정
+        float aspectRatio = (float)texture.width / texture.height;
+        aspectRatioFitter.aspectRatio = aspectRatio;
+        aspectRatioFitter1.aspectRatio = aspectRatio;
+    }
+    void setNav(bool k) {
+        arrow.SetActive(true);
+        isNav = true;
+        if (k) cur_route_i = 0;
+        else cur_route_i = 2;
+    }
+    IEnumerator KtoJ(bool k) {
+        Vector2 a = new Vector2(Input.location.lastData.latitude,Input.location.lastData.longitude);
+        while(ConvertGPS(a-curLocation).magnitude > 25.0f) {
+            yield return new WaitForSeconds(1);
+            a = new Vector2(Input.location.lastData.latitude,Input.location.lastData.longitude);
+        }
+        if (k) cur_route_i++;
+        else cur_route_i--;
+        if (cur_route_i < -1 || cur_route_i > 3) {
+            isNav = false;
+            arrow.SetActive(false);
+            yield break;
+        }
+        curRotation();
+        if(isNav) StartCoroutine(KtoJ(k));
+    }
+
+    void curRotation() {
+        if (cur_route_i == 0) curLocation = rhks[0];
+        else if (cur_route_i == 3) curLocation = rhks[1];
+        else curLocation = KtoJRoute[cur_route_i];
+        Vector2 a = new Vector2(Input.location.lastData.latitude,Input.location.lastData.longitude);
+        Vector3 d = ConvertGPS(curLocation-a);
+        arrow.transform.eulerAngles = new Vector3(0.0f,fromN - (float)Math.Atan2(d.z,d.x) * 57.2958f,0.0f);
+    }
     private Vector2 _localOrigin = Vector2.zero;
 	private float _LatOrigin { get{ return _localOrigin.x; }}	
 	private float _LonOrigin { get{ return _localOrigin.y; }}
@@ -289,7 +371,15 @@ public class GetLocation : MonoBehaviour
             0.0f, 
             (float)(-xPosition * Math.Sin(th) - zPosition * Math.Cos(th)));
 	}
-	
+	private Vector3 ConvertGPS(Vector2 gps)  
+	{
+		FindMetersPerLat(_LatOrigin);
+        int t = 1000000;
+		float zPosition  = metersPerLat * (gps.x * t - _LatOrigin * t) / t; //Calc current lat
+		float xPosition  = metersPerLon * (gps.y * t - _LonOrigin * t) / t; //Calc current lat
+        //return new Vector3(xPosition, 0.0f, zPosition);
+        return new Vector3(xPosition,0.0f,zPosition);
+	}
 	private Vector2 ConvertUCStoGPS(Vector3 position)
 	{
 		FindMetersPerLat(_LatOrigin);
