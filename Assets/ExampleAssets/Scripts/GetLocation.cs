@@ -82,7 +82,7 @@ public class GetLocation : MonoBehaviour
         //StartCoroutine(GetTexture("https://lh3.googleusercontent.com/p/AF1QipOOhJ2n_DB9etfwv9ThRtqN0bFMLq263bxNVirq=s1360-w1360-h1020"));
         StartCoroutine(ObjectRotation());
         //GetJsonData(0);
-        //StartCoroutine(StartLocationService());
+        StartCoroutine(StartLocationService());
         /*string _path = Application.persistentDataPath + "/Scripts";
         if (File.Exists(_path + "/SogangLink.json")) {
             string data = File.ReadAllText(_path + "/SogangLink.json");
@@ -161,8 +161,10 @@ public class GetLocation : MonoBehaviour
         }
         //angle = (float)Math.Acos(Vector3.Dot(cameraForward,new Vector3(0.0f,0.0f,1.0f)));
         if (isNav) {
-            arrow.transform.position = cameraPosition + cameraForward * 10.0f;//new Vector3(10.0f * (float)Math.Sin(angle), 0.0f, 10.0f * (float)Math.Cos(angle));
-            curRotation();
+            //arrow.transform.position = cameraPosition + cameraForward * 10.0f;//new Vector3(10.0f * (float)Math.Sin(angle), 0.0f, 10.0f * (float)Math.Cos(angle));
+            //debugText.text = KtoJRoute[cur_route_i].ToString();
+            //curRotation();
+            //debugText.text += _localOrigin.ToString();
         }
         //Debug.Log(angle);
     }
@@ -209,7 +211,6 @@ public class GetLocation : MonoBehaviour
     {
         // First, check if user has location service enabled
         
-        Debug.Log("GPS why not ");
 
         
         if (!Input.location.isEnabledByUser)
@@ -255,14 +256,15 @@ public class GetLocation : MonoBehaviour
             longitude = Input.location.lastData.longitude;
             altitude = Input.location.lastData.altitude;
             Vector2 gps = new Vector2(latitude,longitude);
-            Vector3 ucspos = ConvertGPStoUCS(deltavector(gps,rhks[it]));
+            _localOrigin = rhks[it];
+            Vector3 ucspos = ConvertGPStoUCS(gps);
             Debug.Log(ucspos);
             debugText.text += ucspos.ToString() + " ";
             placedObject[it] = Instantiate(objectToPlace, ucspos, Quaternion.identity);
             //placedObject[it].transform.localScale = new Vector3(ucspos.magnitude,ucspos.magnitude,ucspos.magnitude);
         }
         //debugText.text += North.w.ToString() + "\n" + North.y.ToString() + "\n";
-        debugText.text += Input.compass.trueHeading.ToString();
+        //debugText.text += Input.compass.trueHeading.ToString();
         gps_count++;
         isSet = true;
         fromN = Input.compass.trueHeading;
@@ -275,9 +277,10 @@ public class GetLocation : MonoBehaviour
         for (int it = 0; it < 2; it++) {
             if (!placedObject[it]) continue;
             Vector3 directionToTarget = deltavector(placedObject[it].transform.position, cameraPosition);
-            placedObject[it].transform.forward = directionToTarget.normalized;
+            placedObject[it].transform.eulerAngles = new Vector3(0.0f,(float)Math.Atan2(directionToTarget.z,directionToTarget.x),0.0f);
         }
         yield return new WaitForSeconds(5);
+        StartCoroutine(ObjectRotation());
     }
 
     IEnumerator GetTexture(string url)
@@ -308,12 +311,18 @@ public class GetLocation : MonoBehaviour
         isNav = true;
         if (k) cur_route_i = 0;
         else cur_route_i = 2;
+        StartCoroutine(KtoJ(k));
     }
     IEnumerator KtoJ(bool k) {
-        Vector2 a = new Vector2(Input.location.lastData.latitude,Input.location.lastData.longitude);
-        while(ConvertGPS(a-curLocation).magnitude > 25.0f) {
-            yield return new WaitForSeconds(1);
-            a = new Vector2(Input.location.lastData.latitude,Input.location.lastData.longitude);
+        _localOrigin = new Vector2(Input.location.lastData.latitude,Input.location.lastData.longitude);
+        while(ConvertGPS(curLocation).magnitude > 25.0f) {
+            yield return new WaitForSeconds(0.1f);
+            _localOrigin = new Vector2(Input.location.lastData.latitude,Input.location.lastData.longitude);
+            Vector3 cameraPosition = Camera.main.transform.position;
+            Vector3 cameraForward = Camera.main.transform.forward;
+            arrow.transform.position = cameraPosition + cameraForward * 10.0f;
+            //arrow.transform.forward = cameraForward;
+            curRotation();
         }
         if (k) cur_route_i++;
         else cur_route_i--;
@@ -327,12 +336,26 @@ public class GetLocation : MonoBehaviour
     }
 
     void curRotation() {
-        if (cur_route_i == 0) curLocation = rhks[0];
+        if (cur_route_i == -1) curLocation = rhks[0];
         else if (cur_route_i == 3) curLocation = rhks[1];
         else curLocation = KtoJRoute[cur_route_i];
-        Vector2 a = new Vector2(Input.location.lastData.latitude,Input.location.lastData.longitude);
-        Vector3 d = ConvertGPS(curLocation-a);
-        arrow.transform.eulerAngles = new Vector3(0.0f,fromN - (float)Math.Atan2(d.z,d.x) * 57.2958f,0.0f);
+        _localOrigin = new Vector2(Input.location.lastData.latitude,Input.location.lastData.longitude);
+        Vector3 d = ConvertGPS(curLocation);
+        Vector3 cf = Camera.main.transform.forward;
+        cf = new Vector3(cf.x,0.0f,cf.z).normalized;
+        double theta = -(Math.Atan2(d.z,d.x) - (Input.compass.trueHeading - 90.0) * 0.0174533);
+        arrow.transform.forward = new Vector3(cf.x * (float)Math.Cos(theta) - cf.z * (float)Math.Sin(theta), 0.0f, 
+        cf.x * (float)Math.Sin(theta) + cf.z * (float)Math.Cos(theta));
+        debugText.text = KtoJRoute[cur_route_i].x + " " + KtoJRoute[cur_route_i].y + "\n";
+        debugText.text += _localOrigin.x + " " + _localOrigin.y + '\n';
+        //arrow.transform.eulerAngles = new Vector3(0.0f, Camera.main.transform.rotation.y,0.0f);
+        //arrow.transform.eulerAngles = new Vector3(0.0f,(float)Math.Atan2(d.z,d.x) * 57.2958f- fromN + 90.0f,0.0f);
+        //debugText.text = "\n";
+        //debugText.text = (Math.Atan2(d.z,d.x) - Input.compass.trueHeading * 0.0174533).ToString() + '\n';
+        //debugText.text += Input.compass.trueHeading.ToString() + "\n\n";
+        //debugText.text += fromN.ToString() + "\n\n";
+        //debugText.text += ((float)Math.Atan2(d.z,d.x) * 57.2958f).ToString() + '\n';
+        //Debug.Log((float)Math.Atan2(d.z,d.x) * 57.2958f);
     }
     private Vector2 _localOrigin = Vector2.zero;
 	private float _LatOrigin { get{ return _localOrigin.x; }}	
