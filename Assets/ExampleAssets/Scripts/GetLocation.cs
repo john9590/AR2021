@@ -57,8 +57,8 @@ public class GetLocation : MonoBehaviour
     private FacilityInfo jsonData;
     private bool isSet = false;
     private bool iscompass = true;
-    private string[] httpsjson = { "http://3.39.11.150:8080/maps/building?building=K",
-                                    "http://3.39.11.150:8080/maps/building?building=J" };
+    private string[] httpsjson = { "http://34.64.245.20:8000/maps/building?building=K",
+                                    "http://34.64.245.20:8000/maps/building?building=J" };
     private string[] imageurl = { "https://dbscthumb-phinf.pstatic.net/5701_000_34/20210806195737492_1ZXAYA0WY.jpg/aW1mb3RvfDM0NzI0.jpg?type=m935&autoRotate=true&wm=N",
                                     "https://lh3.googleusercontent.com/p/AF1QipOOhJ2n_DB9etfwv9ThRtqN0bFMLq263bxNVirq=s1360-w1360-h1020" };
     public RawImage rawImage;
