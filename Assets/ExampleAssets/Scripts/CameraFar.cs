@@ -30,14 +30,9 @@ public class CameraFar : MonoBehaviour
         // 나침반 활성화
         Input.compass.enabled = true;
         Debug.Log(Input.compass.trueHeading);
-        //Quaternion rotation = Quaternion.Euler(0, -Input.compass.trueHeading, 0);
-        //transform.rotation = rotation;
     }
 
     void Update()
     {
-        //Debug.Log(Input.compass.trueHeading);
-        //transform.eulerAngles = new Vector3(0.0f, -Input.compass.trueHeading, 0.0f);
-        //transform.rotation = Quaternion.Euler(0, -Input.compass.trueHeading, 0);
     }
 }

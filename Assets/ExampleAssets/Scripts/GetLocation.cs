@@ -79,41 +79,15 @@ public class GetLocation : MonoBehaviour
         KtoJRoute[2] = new Vector2(37.550814f,126.943411f);
         DontDestroyOnLoad(gameObject);
         Input.compass.enabled = true;
-        //StartCoroutine(GetTexture("https://lh3.googleusercontent.com/p/AF1QipOOhJ2n_DB9etfwv9ThRtqN0bFMLq263bxNVirq=s1360-w1360-h1020"));
         StartCoroutine(ObjectRotation());
-        //GetJsonData(0);
         StartCoroutine(StartLocationService());
-        /*string _path = Application.persistentDataPath + "/Scripts";
-        if (File.Exists(_path + "/SogangLink.json")) {
-            string data = File.ReadAllText(_path + "/SogangLink.json");
-            jsonData = JsonUtility.FromJson<FacilityInfo>(data);
-            //Debug.Log(jsonData.readingRoom.totalSeats);
-            Debug.Log(jsonData.emptyClassrooms[0]);
-        }
-        /*string jsonFilePath = "/Scripts/SogangLink.json";
-        if(File.Exists(Application.persistentDataPath + jsonFilePath))
-        {
-            string jsonString = File.ReadAllText(Application.persistentDataPath + jsonFilePath);
-            FacilityInfo jsonData = JsonUtility.FromJson<FacilityInfo>(jsonString);
-            Debug.Log(jsonData.readingRoom.totalSeats);
-        }
-        else {
-            Debug.Log("aa");
-        }*/
-        //StartCoroutine(GetFacilityInfo(url));
-        //GameObject placed1Object = Instantiate(objectToPlace, new Vector3(0.0f,0.0f,0.0f), Quaternion.identity);
-        
     }
     
     private void Update()
     {
-        //GetJsonData(0);
         float angle;
         if(iscompass && Input.compass.enabled) {
             StartCoroutine(StartLocationService());
-            //Quaternion rotation = Quaternion.Euler(0, -Input.compass.trueHeading, 0);
-            //transform.rotation = rotation;
-            //debugText2.text = rotation.w.ToString() + rotation.y.ToString();
             iscompass = false;
         }
         if (!isSet) return;
@@ -128,17 +102,10 @@ public class GetLocation : MonoBehaviour
         for (int it = 0; it < 2; it++) {
             if (!placedObject[it]) continue;
             Vector3 directionToTarget = deltavector(placedObject[it].transform.position, cameraPosition);
-            //placedObject[it].transform.forward = Quaternion.Euler(0,90,0) * directionToTarget.normalized;
-
             // 카메라의 방향 벡터와 타겟 방향 벡터의 각도 계산
             angle = Vector3.Angle(cameraForward, directionToTarget);
-            //Debug.Log(objectToPlace.transform.position);
-            //Debug.Log(cameraPosition);
-            //Debug.Log(angle);
-            //Debug.Log(Vector3.Dot(cameraForward, directionToTarget.normalized));
             // 시선 최대 각도 이내에 있으면서 타겟 오브젝트를 바라보고 있다면
             debugText2.text += directionToTarget.normalized.ToString();
-            //debugText2.text += cameraPosition.ToString();
             if (angle <= 30.0f && Vector3.Dot(cameraForward, directionToTarget.normalized) > 0.5f)
             {
                 currentWatchTime[it] += Time.deltaTime;
@@ -153,20 +120,11 @@ public class GetLocation : MonoBehaviour
             {
                 currentWatchTime[it] = 0.0f;
                 // 타겟 오브젝트를 바라보고 있지 않은 상태
-                //Debug.Log("Camera is not looking at the target object.");
             }
         }
         if (all_watch) {
             uiToShow.SetActive(false);
         }
-        //angle = (float)Math.Acos(Vector3.Dot(cameraForward,new Vector3(0.0f,0.0f,1.0f)));
-        if (isNav) {
-            //arrow.transform.position = cameraPosition + cameraForward * 10.0f;//new Vector3(10.0f * (float)Math.Sin(angle), 0.0f, 10.0f * (float)Math.Cos(angle));
-            //debugText.text = KtoJRoute[cur_route_i].ToString();
-            //curRotation();
-            //debugText.text += _localOrigin.ToString();
-        }
-        //Debug.Log(angle);
     }
     private void GetJsonData(int it) {
         StartCoroutine(GetTexture(imageurl[it]));
@@ -209,21 +167,13 @@ public class GetLocation : MonoBehaviour
     }
     private IEnumerator StartLocationService()
     {
-        // First, check if user has location service enabled
-        
-
-        
         if (!Input.location.isEnabledByUser)
         {
             Debug.Log("GPS not enabled");
             message = "GPS not enabled";
             yield break;
         }
-
-        // Start service before querying location
         Input.location.Start();
-
-        // Wait until service initializes
         int maxWait = 20;
         while (Input.location.status == LocationServiceStatus.Initializing && maxWait > 0)
         {
@@ -231,7 +181,6 @@ public class GetLocation : MonoBehaviour
             maxWait--;
         }
 
-        // Service didn't initialize in 20 seconds
         if (maxWait <= 0)
         {
             Debug.Log("Timed out");
@@ -239,7 +188,6 @@ public class GetLocation : MonoBehaviour
             yield break;
         }
 
-        // Connection has failed
         if (Input.location.status == LocationServiceStatus.Failed)
         {
             Debug.Log("Unable to determine device location");
@@ -249,7 +197,6 @@ public class GetLocation : MonoBehaviour
         if (Input.compass.headingAccuracy < 0) {
             yield break;
         }
-        // Set locational infomations
         debugText.text = "";
         for (int it=0;it<2;it++) {
             latitude = Input.location.lastData.latitude;
@@ -258,13 +205,9 @@ public class GetLocation : MonoBehaviour
             Vector2 gps = new Vector2(latitude,longitude);
             _localOrigin = rhks[it];
             Vector3 ucspos = ConvertGPStoUCS(gps);
-            Debug.Log(ucspos);
             debugText.text += ucspos.ToString() + " ";
             placedObject[it] = Instantiate(objectToPlace, ucspos, Quaternion.identity);
-            //placedObject[it].transform.localScale = new Vector3(ucspos.magnitude,ucspos.magnitude,ucspos.magnitude);
         }
-        //debugText.text += North.w.ToString() + "\n" + North.y.ToString() + "\n";
-        //debugText.text += Input.compass.trueHeading.ToString();
         gps_count++;
         isSet = true;
         fromN = Input.compass.trueHeading;
@@ -321,7 +264,6 @@ public class GetLocation : MonoBehaviour
             Vector3 cameraPosition = Camera.main.transform.position;
             Vector3 cameraForward = Camera.main.transform.forward;
             arrow.transform.position = cameraPosition + cameraForward * 10.0f;
-            //arrow.transform.forward = cameraForward;
             curRotation();
         }
         if (k) cur_route_i++;
@@ -348,14 +290,6 @@ public class GetLocation : MonoBehaviour
         cf.x * (float)Math.Sin(theta) + cf.z * (float)Math.Cos(theta));
         debugText.text = KtoJRoute[cur_route_i].x + " " + KtoJRoute[cur_route_i].y + "\n";
         debugText.text += _localOrigin.x + " " + _localOrigin.y + '\n';
-        //arrow.transform.eulerAngles = new Vector3(0.0f, Camera.main.transform.rotation.y,0.0f);
-        //arrow.transform.eulerAngles = new Vector3(0.0f,(float)Math.Atan2(d.z,d.x) * 57.2958f- fromN + 90.0f,0.0f);
-        //debugText.text = "\n";
-        //debugText.text = (Math.Atan2(d.z,d.x) - Input.compass.trueHeading * 0.0174533).ToString() + '\n';
-        //debugText.text += Input.compass.trueHeading.ToString() + "\n\n";
-        //debugText.text += fromN.ToString() + "\n\n";
-        //debugText.text += ((float)Math.Atan2(d.z,d.x) * 57.2958f).ToString() + '\n';
-        //Debug.Log((float)Math.Atan2(d.z,d.x) * 57.2958f);
     }
     private Vector2 _localOrigin = Vector2.zero;
 	private float _LatOrigin { get{ return _localOrigin.x; }}	
